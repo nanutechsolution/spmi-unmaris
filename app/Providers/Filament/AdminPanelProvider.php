@@ -34,6 +34,9 @@ class AdminPanelProvider extends PanelProvider
             ->collapsibleNavigationGroups()
             // ->brandLogo(asset('logo-unmaris.png'))
             // ->brandLogoHeight('2rem')
+            // ->brandLogo(fn () => view('filament.brand'))
+            ->favicon(asset('logo-unmaris.png'))
+            ->brandLogoHeight('2rem')
             ->brandName("SPMI UNMARIS")
             ->colors([
                 'primary' => Color::Blue,
