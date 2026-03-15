@@ -117,7 +117,6 @@ class LandingPageController extends Controller
         $latestNews = Cache::remember('public_latest_news', $cacheDuration, function () {
             // Mengecek apakah tabel posts/berita sudah dibuat
             if (Schema::hasTable('posts')) {
-                // Asumsi Anda menggunakan \App\Models\Post
                 return \App\Models\Post::where('is_published', true)
                     ->latest()
                     ->take(3)
@@ -150,8 +149,8 @@ class LandingPageController extends Controller
         return view('public.spmi-landing', [
             'profile' => $profile,
             'orgStructureUrl' => $orgStructureUrl,
-            'heroImageUrl' => $heroImageUrl, // Variabel baru untuk Hero Image
-            'latestNews' => $latestNews,     // Variabel baru untuk Berita
+            'heroImageUrl' => $heroImageUrl, 
+            'latestNews' => $latestNews,     
             'vision' => $profile->vision,
             'missions' => $profile->missions, 
             'heroTitle' => $profile->hero_title,
@@ -167,6 +166,33 @@ class LandingPageController extends Controller
             'accreditations' => $accreditations,
             'ppeppSteps' => $ppeppSteps,
         ]);
+    }
+
+    /**
+     * Menampilkan halaman baca berita secara penuh
+     */
+    public function showPost($slug)
+    {
+        // Cari berita berdasarkan slug yang sudah di-publish
+        $post = \App\Models\Post::where('slug', $slug)
+            ->where('is_published', true)
+            ->firstOrFail();
+
+        return view('public.post-show', compact('post'));
+    }
+
+    /**
+     * FUNGSI BARU: Menampilkan gambar thumbnail berita secara aman.
+     */
+    public function showPostImage($id)
+    {
+        $post = \App\Models\Post::findOrFail($id);
+
+        if (empty($post->featured_image)) {
+            abort(404, 'Gambar berita tidak ditemukan.');
+        }
+
+        return $this->serveImageBypass($post->featured_image);
     }
 
     /**
