@@ -22,11 +22,10 @@ class LandingPageController extends Controller
     public function index()
     {
         // Tentukan durasi cache (contoh: 30 menit). 
-        // Ini akan sangat mempercepat loading website karena DB tidak akan terus-menerus di-query.
         $cacheDuration = now()->addMinutes(30);
 
-        // 1. Mengambil Profil Website (Dengan Caching)
-        $profile = Cache::remember('public_lpm_profile', $cacheDuration, function () {
+        // 1. Mengambil Profil Website (Dengan Caching - V2 untuk bypass cache lama)
+        $profile = Cache::remember('public_lpm_profile_v2', $cacheDuration, function () {
             return LpmProfile::first() ?? new LpmProfile([
                 'hero_title' => 'Menjamin Mutu Tanpa Kompromi.',
                 'hero_description' => 'Sistem Penjaminan Mutu Internal Universitas Stella Maris Sumba.',
@@ -38,7 +37,7 @@ class LandingPageController extends Controller
                 'email' => 'lpm@unmaris.ac.id',
                 'social_media' => [],
                 'org_structure_image' => null,
-                'hero_image' => null, // Penambahan kolom hero image
+                'hero_image' => null,
             ]);
         });
 
@@ -46,8 +45,8 @@ class LandingPageController extends Controller
         $orgStructureUrl = !empty($profile->org_structure_image) ? url('/struktur-organisasi/image') : null;
         $heroImageUrl = !empty($profile->hero_image) ? url('/hero-image/file') : null;
 
-        // 2. Data Statistik (Dengan Caching)
-        $stats = Cache::remember('public_spmi_stats', $cacheDuration, function () {
+        // 2. Data Statistik (Dengan Caching - V2)
+        $stats = Cache::remember('public_spmi_stats_v2', $cacheDuration, function () {
             return [
                 'total_standards' => Standard::count() ?: 0,
                 'completion_rate' => $this->calculateCompletionRate(),
@@ -62,12 +61,12 @@ class LandingPageController extends Controller
             }
         }
 
-        // 3. MENGAMBIL DATA DOKUMEN MUTU (Dengan Caching)
-        $publicDocuments = Cache::remember('public_spmi_documents', $cacheDuration, function () {
+        // 3. MENGAMBIL DATA DOKUMEN MUTU (Dengan Caching - V2)
+        $publicDocuments = Cache::remember('public_spmi_documents_v2', $cacheDuration, function () {
             $documents = Document::where('status', 'approved')
                 ->where(function ($query) {
                     $query->whereNull('valid_until')
-                          ->orWhere('valid_until', '>=', now());
+                        ->orWhere('valid_until', '>=', now());
                 })
                 ->latest()
                 ->take(6)
@@ -77,14 +76,14 @@ class LandingPageController extends Controller
                 return [
                     'title' => $doc->title,
                     'description' => 'Kategori: ' . ucfirst($doc->category) . ' | Versi: ' . $doc->version . ' | No: ' . $doc->document_number,
-                    'icon' => match(strtolower($doc->category)) {
+                    'icon' => match (strtolower($doc->category)) {
                         'kebijakan' => 'book-open',
                         'manual' => 'shield-check',
                         'standar' => 'award',
                         'formulir' => 'clipboard-document-list',
                         default => 'file-text'
                     },
-                    'color' => match(strtolower($doc->category)) {
+                    'color' => match (strtolower($doc->category)) {
                         'kebijakan' => 'blue',
                         'manual' => 'emerald',
                         'standar' => 'amber',
@@ -96,8 +95,8 @@ class LandingPageController extends Controller
             })->toArray();
         });
 
-        // 4. Data Akreditasi (Dengan Caching)
-        $accreditations = Cache::remember('public_accreditations', $cacheDuration, function () {
+        // 4. Data Akreditasi (Dengan Caching - V2)
+        $accreditations = Cache::remember('public_accreditations_v2', $cacheDuration, function () {
             if (Schema::hasTable('accreditations')) {
                 return \App\Models\Accreditation::all()->map(function ($acc) {
                     return [
@@ -113,11 +112,12 @@ class LandingPageController extends Controller
             return [];
         });
 
-        // 5. Modul Berita / Pengumuman Terbaru (Dengan Caching)
-        $latestNews = Cache::remember('public_latest_news', $cacheDuration, function () {
+        // 5. Modul Berita / Pengumuman Terbaru (Dengan Caching - V2)
+        $latestNews = Cache::remember('public_latest_news_v2', $cacheDuration, function () {
             // Mengecek apakah tabel posts/berita sudah dibuat
             if (Schema::hasTable('posts')) {
-                return \App\Models\Post::where('is_published', true)
+                // Menggunakan scope published() agar mengecek status toggle publikasi DAN tanggal rilis
+                return \App\Models\Post::published()
                     ->latest()
                     ->take(3)
                     ->get()
@@ -126,8 +126,10 @@ class LandingPageController extends Controller
                             'id' => $post->id,
                             'title' => $post->title,
                             'excerpt' => Str::limit(strip_tags($post->content), 100),
-                            'date' => $post->created_at->format('d M Y'),
-                            'url' => url('/berita/' . $post->slug)
+                            // Jika ada tgl rilis khusus, pakai itu, jika tidak pakai tgl dibuat
+                            'date' => $post->published_at ? $post->published_at->format('d M Y') : $post->created_at->format('d M Y'),
+                            'url' => url('/berita/' . $post->slug),
+                            'image' => $post->featured_image ? url('/berita/image/' . $post->id) : null,
                         ];
                     })->toArray();
             }
@@ -135,8 +137,8 @@ class LandingPageController extends Controller
         });
 
         // 6. Langkah Siklus PPEPP
-        $ppeppSteps = !empty($profile->ppepp_steps) 
-            ? $profile->ppepp_steps 
+        $ppeppSteps = !empty($profile->ppepp_steps)
+            ? $profile->ppepp_steps
             : [
                 ['short' => 'P', 'title' => 'Penetapan', 'description' => 'Penyusunan standar mutu universitas.'],
                 ['short' => 'P', 'title' => 'Pelaksanaan', 'description' => 'Penerapan standar dalam aktivitas akademik.'],
@@ -149,10 +151,10 @@ class LandingPageController extends Controller
         return view('public.spmi-landing', [
             'profile' => $profile,
             'orgStructureUrl' => $orgStructureUrl,
-            'heroImageUrl' => $heroImageUrl, 
-            'latestNews' => $latestNews,     
+            'heroImageUrl' => $heroImageUrl,
+            'latestNews' => $latestNews,
             'vision' => $profile->vision,
-            'missions' => $profile->missions, 
+            'missions' => $profile->missions,
             'heroTitle' => $profile->hero_title,
             'heroDescription' => $profile->hero_description,
             'contact' => [
@@ -182,7 +184,7 @@ class LandingPageController extends Controller
     }
 
     /**
-     * FUNGSI BARU: Menampilkan gambar thumbnail berita secara aman.
+     * Menampilkan gambar thumbnail berita secara aman.
      */
     public function showPostImage($id)
     {
@@ -232,13 +234,13 @@ class LandingPageController extends Controller
 
         $disk = 'public';
         if (!Storage::disk($disk)->exists($filePath)) {
-            $disk = 'local'; 
+            $disk = 'local';
         }
 
         if (Storage::disk($disk)->exists($filePath)) {
             $file = Storage::disk($disk)->get($filePath);
             $type = Storage::disk($disk)->mimeType($filePath);
-            
+
             return response($file, 200)->header('Content-Type', $type);
         }
 
@@ -260,13 +262,13 @@ class LandingPageController extends Controller
 
         $disk = 'public';
         if (!Storage::disk($disk)->exists($filePath)) {
-            $disk = 'local'; 
+            $disk = 'local';
         }
 
         if (Storage::disk($disk)->exists($filePath)) {
             $extension = pathinfo($filePath, PATHINFO_EXTENSION);
             $cleanFilename = Str::slug($document->document_number . '-' . $document->title) . '.' . ($extension ?: 'pdf');
-            
+
             return Storage::disk($disk)->download($filePath, $cleanFilename);
         }
 
@@ -288,13 +290,13 @@ class LandingPageController extends Controller
 
         $disk = 'public';
         if (!Storage::disk($disk)->exists($filePath)) {
-            $disk = 'local'; 
+            $disk = 'local';
         }
 
         if (Storage::disk($disk)->exists($filePath)) {
             $extension = pathinfo($filePath, PATHINFO_EXTENSION);
             $cleanFilename = Str::slug('Sertifikat-' . $accreditation->prodi_name . '-' . $accreditation->rank) . '.' . ($extension ?: 'pdf');
-            
+
             return Storage::disk($disk)->download($filePath, $cleanFilename);
         }
 
@@ -307,11 +309,11 @@ class LandingPageController extends Controller
     private function calculateCompletionRate()
     {
         $total = Schedule::count();
-        
+
         if ($total == 0) return 0;
 
-        $completed = Schedule::where('status', 'completed')->count();
-        
+        $completed = AmiSchedule::where('status', 'completed')->count();
+
         return round(($completed / $total) * 100);
     }
 }

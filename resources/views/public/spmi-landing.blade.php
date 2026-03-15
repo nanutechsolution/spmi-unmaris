@@ -272,6 +272,17 @@
             <div class="grid md:grid-cols-3 gap-8">
                 @foreach($latestNews as $news)
                 <div class="bg-slate-50 rounded-[2rem] overflow-hidden shadow-sm border border-slate-100 hover:shadow-xl transition-all group flex flex-col">
+                    <!-- Thumbnail Berita -->
+                    <a href="{{ $news['url'] }}" class="block h-48 overflow-hidden relative bg-slate-200">
+                        @if($news['image'])
+                            <img src="{{ $news['image'] }}" alt="{{ $news['title'] }}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
+                        @else
+                            <div class="w-full h-full bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center group-hover:scale-105 transition-transform duration-500">
+                                <i data-lucide="newspaper" class="w-12 h-12 text-blue-200"></i>
+                            </div>
+                        @endif
+                    </a>
+
                     <div class="p-8 flex-grow flex flex-col">
                         <div class="text-xs font-bold text-blue-600 mb-4 tracking-widest uppercase">{{ $news['date'] }}</div>
                         <h4 class="text-xl font-bold text-slate-900 mb-4 group-hover:text-blue-600 transition-colors line-clamp-2">
