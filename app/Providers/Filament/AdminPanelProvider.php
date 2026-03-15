@@ -32,8 +32,8 @@ class AdminPanelProvider extends PanelProvider
             ->path('admin')
             ->authGuard('web')
             ->collapsibleNavigationGroups()
-            ->collapsedSidebarWidth(true    )
-            ->brandLogo(asset('logo-unmaris.png'))
+            // ->brandLogo(asset('logo-unmaris.png'))
+            // ->brandLogoHeight('2rem')
             ->brandName("SPMI UNMARIS")
             ->colors([
                 'primary' => Color::Blue,
@@ -67,8 +67,8 @@ class AdminPanelProvider extends PanelProvider
             ])
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\Filament\Widgets')
             ->widgets([
-                AccountWidget::class,
-                FilamentInfoWidget::class,
+                // AccountWidget::class,
+                // FilamentInfoWidget::class,
             ])
             ->middleware([
                 EncryptCookies::class,
