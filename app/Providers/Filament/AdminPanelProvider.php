@@ -33,7 +33,7 @@ class AdminPanelProvider extends PanelProvider
             ->authGuard('web')
             ->collapsibleNavigationGroups()
             ->collapsedSidebarWidth(true    )
-            ->brandLogo('/logo-unnmaris.png')
+            ->brandLogo(asset('logo-unmaris.png'))
             ->brandName("SPMI UNMARIS")
             ->colors([
                 'primary' => Color::Blue,

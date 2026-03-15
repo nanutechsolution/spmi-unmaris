@@ -272,9 +272,10 @@
             <div class="grid md:grid-cols-3 gap-8">
                 @foreach($latestNews as $news)
                 <div class="bg-slate-50 rounded-[2rem] overflow-hidden shadow-sm border border-slate-100 hover:shadow-xl transition-all group flex flex-col">
+                    
                     <!-- Thumbnail Berita -->
                     <a href="{{ $news['url'] }}" class="block h-48 overflow-hidden relative bg-slate-200">
-                        @if($news['image'])
+                        @if(!empty($news['image']))
                             <img src="{{ $news['image'] }}" alt="{{ $news['title'] }}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
                         @else
                             <div class="w-full h-full bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center group-hover:scale-105 transition-transform duration-500">
